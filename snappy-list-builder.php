@@ -249,5 +249,63 @@ function slb_list_column_data($column, $post_id){
 function slb_save_subscription(){
 	
 	//setup default result data
+	$result= array(
+		'status'=>0,
+		'message'=>'subscription was not saved.',	
+	);
+	//array for storing errors
+	errors=array();
+	
+	try{
+		
+		//get list id
+		$list_id=(int)$_POST['slb_list'];
+		
+		//prepare subscriber data
+		
+		$subscriber_data=array(
+			'fname'=>esc_attr( $_POST['slb_fname']),
+			'email'=>esc_attr( $_POST['slb_email']),
+			'lname'=>esc_attr( $_POST['slb_lname']),
+			
+		);
+		
+		//attempt to create or save subscriber
+		$subscriber_id=slb_save_subscriber($subscriber_data);
+		
+		// if  the subscriber was saved successfully $subscriber_id will be greater than 0 
+		if($subscriber_id):
+			//if subscriber already has this subscription
+			if(slb_subscriber_has_subscription($subscriber_id,$list_id)):
+				//get list_object
+				
+				$list=get_post($list_id);
+				
+				//return detailed error
+				$result['error'] = esc_attr( $subscriber_data['email'] .' is already subscribed to '. $list->post_title .'.');
+			
+			else:
+			//save  new subscription
+				
+				$subscription_saved=slb_add_subscription($subscriber_id,$list_id);
+				
+				//if subscription was saved successfully
+				if($subscription_saved):
+					$result('status')=1;
+					$result('message')= 'subscription saved';
+				endif;
+						
+			endif;
+		endif;
+	}catch (Exception $e){
+		
+	}
+	
+	slb_return_json($result);
+	/*	*/
 	
 }
+
+//5.2 
+
+// creates a new subscriber or update and existing one

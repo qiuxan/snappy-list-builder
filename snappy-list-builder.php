@@ -309,3 +309,45 @@ function slb_save_subscription(){
 //5.2 
 
 // creates a new subscriber or update and existing one
+
+function slb_save_subscriber($subscriber_data){
+	//setup default subscriber id
+	// 0 means the subscriber was not saved
+	$subscriber_id=0;
+	
+	try{
+		
+		$subscriber_id=slb_get_subscriber_id($subscriber_data['email']);
+		
+		//if the subscriber does not exist
+		
+		if( !$subscriber_id ):
+		
+			// add new subscriber to database	
+			$subscriber_id = wp_insert_post( 
+				array(
+					'post_type'=>'slb_subscriber',
+					'post_title'=>$subscriber_data['fname'] .' '. $subscriber_data['lname'],
+					'post_status'=>'publish',
+				), 
+				true
+			);
+		
+		endif;
+		
+		// add/update custom meta data
+		update_field(slb_get_acf_key('slb_fname'), $subscriber_data['fname'], $subscriber_id);
+		update_field(slb_get_acf_key('slb_lname'), $subscriber_data['lname'], $subscriber_id);
+		update_field(slb_get_acf_key('slb_email'), $subscriber_data['email'], $subscriber_id);
+		
+	} catch (Exception $e){
+		
+	}
+	return $subscriber_id;
+	
+	
+}
+
+/* !6. Helper */
+  
+  

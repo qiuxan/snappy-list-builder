@@ -348,6 +348,188 @@ function slb_save_subscriber($subscriber_data){
 	
 }
 
+// 5.3
+// hint: adds list to subscribers subscriptions
+function slb_add_subscription( $subscriber_id, $list_id ) {
+	
+	// setup default return value
+	$subscription_saved = false;
+	
+	// IF the subscriber does NOT have the current list subscription
+	if( !slb_subscriber_has_subscription( $subscriber_id, $list_id ) ):
+	
+		// get subscriptions and append new $list_id
+		$subscriptions = slb_get_subscriptions( $subscriber_id );
+		$subscriptions[]=$list_id;
+		
+		// update slb_subscriptions
+		update_field( slb_get_acf_key('slb_subscriptions'), $subscriptions, $subscriber_id );
+		
+		// subscriptions updated!
+		$subscription_saved = true;
+	
+	endif;
+	
+	// return result
+	return $subscription_saved;
+	
+
 /* !6. Helper */
   
-  
+ 
+ // 6.1
+// hint: returns true or false
+function slb_subscriber_has_subscription( $subscriber_id, $list_id ) {
+	
+	// setup default return value
+	$has_subscription = false;
+	
+	// get subscriber
+	$subscriber = get_post($subscriber_id);
+	
+	// get subscriptions
+	$subscriptions = slb_get_subscriptions( $subscriber_id );
+	
+	// check subscriptions for $list_id
+	if( in_array($list_id, $subscriptions) ):
+	
+		// found the $list_id in $subscriptions
+		// this subscriber is already subscribed to this list
+		$has_subscription = true;
+	
+	else:
+	
+		// did not find $list_id in $subscriptions
+		// this subscriber is not yet subscribed to this list
+	
+	endif;
+	
+	return $has_subscription;
+	
+}
+// 6.2
+// hint: retrieves a subscriber_id from an email address
+function slb_get_subscriber_id( $email ) {
+	
+	$subscriber_id = 0;
+	
+	try {
+	
+		// check if subscriber already exists
+		$subscriber_query = new WP_Query( 
+			array(
+				'post_type'		=>	'slb_subscriber',
+				'posts_per_page' => 1,
+				'meta_key' => 'slb_email',
+				'meta_query' => array(
+				    array(
+				        'key' => 'slb_email',
+				        'value' => $email,  // or whatever it is you're using here
+				        'compare' => '=',
+				    ),
+				),
+			)
+		);
+		
+		// IF the subscriber exists...
+		if( $subscriber_query->have_posts() ):
+		
+			// get the subscriber_id
+			$subscriber_query->the_post();
+			$subscriber_id = get_the_ID();
+			
+		endif;
+	
+	} catch( Exception $e ) {
+		
+		// a php error occurred
+		
+	}
+		
+	// reset the Wordpress post object
+	wp_reset_query();
+	
+	return (int)$subscriber_id;
+	
+}
+
+
+// 6.3
+// hint: returns an array of list_id's
+function slb_get_subscriptions( $subscriber_id ) {
+	
+	$subscriptions = array();
+	
+	// get subscriptions (returns array of list objects)
+	$lists = get_field( slb_get_acf_key('slb_subscriptions'), $subscriber_id );
+	
+	// IF $lists returns something
+	if( $lists ):
+	
+		// IF $lists is an array and there is one or more items
+		if( is_array($lists) && count($lists) ):
+			// build subscriptions: array of list id's
+			foreach( $lists as &$list):
+				$subscriptions[]= (int)$list->ID;
+			endforeach;
+		elseif( is_numeric($lists) ):
+			// single result returned
+			$subscriptions[]= $lists;
+		endif;
+	
+	endif;
+	
+	return (array)$subscriptions;
+	
+}
+
+// 6.4
+function slb_return_json( $php_array ) {
+	
+	// encode result as json string
+	$json_result = json_encode( $php_array );
+	
+	// return result
+	die( $json_result );
+	
+	// stop all other processing 
+	exit;
+	
+}
+
+
+//6.5
+// hint: gets the unique act field key from the field name
+function slb_get_acf_key( $field_name ) {
+	
+	$field_key = $field_name;
+	
+	switch( $field_name ) {
+		
+		case 'slb_fname':
+			$field_key = 'field_55c8ec63416a2';
+			break;
+		case 'slb_lname':
+			$field_key = 'field_55c8ec76416a3';
+			break;
+		case 'slb_email':
+			$field_key = 'field_55c8ec87416a4';
+			break;
+		case 'slb_subscriptions':
+			$field_key = 'field_55c8ecac416a5';
+			break;
+		case 'slb_enable_reward':
+			$field_key = 'field_55ce8fe510a17';
+			break;
+		case 'slb_reward_title':
+			$field_key = 'field_55ce902710a18';
+			break;
+		case 'slb_reward_file':
+			$field_key = 'field_55ce904710a19';
+			break;
+		
+	}
+	
+	return $field_key;
+	
+}
